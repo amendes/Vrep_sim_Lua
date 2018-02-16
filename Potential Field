@@ -33,7 +33,7 @@ if (sim_call_type==sim_childscriptcall_actuation) then
     M = 3
     N = 3
 
--- Preechemento do mapa como não visitado
+-- Fill the map with no visited area
     visit = {}          -- create the matrix
     for iii=1,N do
       visit[iii] = {}     -- create a new row
@@ -49,11 +49,11 @@ if (sim_call_type==sim_childscriptcall_actuation) then
 
 for i=(xr-ds), (xr+ds), ds do
     for j=(yr-ds), (yr+ds), ds do
--- Calculo do Potencial Atrativo
+-- Attractive Potential
         dist = math.sqrt(math.pow((i-xf),2)+math.pow((j-yf),2))
         dist = math.sqrt(math.pow(dist,2))
         pot_atra = dist
--- Calculo do Potencial Repulsivo
+-- Repulsive Potential 
        dist = math.sqrt(math.pow((i-OB1[1]+0.015),2)+math.pow((j-OB1[2]+0.03),2))
        dist = math.sqrt(math.pow(dist,2))
        pot_repu = math.pow((1/dist),2)
@@ -91,10 +91,12 @@ end
     if (delta_x < 0) and delta_y > 0 then
         theta_ref = -135
     end
-    if (delta_x < -0.1) and (delta_y > 0.1) and (math.abs(theta_ref - theta_i) > 2 )then
-     --   theta_ref = 180
+    if ((xr - xf) < 0) and (math.abs(theta_ref - theta_i) > 2 )then
+        theta_ref = 180
     end
-    
+    if ((xr - xf) < 0) and (math.abs(theta_ref - theta_i) < 0.2 )then
+        theta_ref = 0
+    end
 
 
     if dist < 0.09 then
