@@ -1,0 +1,128 @@
+if (sim_call_type==sim_childscriptcall_initialization) then 
+    motorLeft=simGetObjectHandle("dr12_leftJoint_")
+    motorRight=simGetObjectHandle("dr12_rightJoint_")
+    bumperSensorHandle=simGetObjectHandle("dr12_bumperForceSensor_")
+    robot=simGetObjectHandle("dr12")
+    robotbase=simGetObjectHandle("dr12Base")
+    backwardModeUntilTime=0
+
+    myconsole=simAuxiliaryConsoleOpen('Text_Debugger',20,20,{0.5,0.9},{400,400},NULL,NULL)
+    simAuxiliaryConsoleShow(myconsole,1)
+
+    xf = -1.2
+    yf = 1.2
+    destination = 0
+
+end 
+
+if (sim_call_type==sim_childscriptcall_cleanup) then 
+ 
+end 
+
+if (sim_call_type==sim_childscriptcall_actuation) then 
+
+
+    Pos = simGetObjectPosition(robot,-1)
+    Ori = simGetObjectOrientation(robot,-1)
+    xr = Pos[1]
+    yr = Pos[2]
+    theta_i = Ori[3]
+
+    ds = 0.1
+
+    M = 3
+    N = 3
+
+-- Preechemento do mapa como não visitado
+    visit = {}          -- create the matrix
+    for iii=1,N do
+      visit[iii] = {}     -- create a new row
+      for jjj=1,M do
+        visit[iii][jjj] = 0
+      end
+    end
+    
+    aux = 6
+    OB1 = {0.0,0.0}
+    ii = 1
+    jj = 1
+
+for i=(xr-ds), (xr+ds), ds do
+    for j=(yr-ds), (yr+ds), ds do
+-- Calculo do Potencial Atrativo
+        dist = math.sqrt(math.pow((i-xf),2)+math.pow((j-yf),2))
+        dist = math.sqrt(math.pow(dist,2))
+        pot_atra = dist
+-- Calculo do Potencial Repulsivo
+       dist = math.sqrt(math.pow((i-OB1[1]+0.015),2)+math.pow((j-OB1[2]+0.03),2))
+       dist = math.sqrt(math.pow(dist,2))
+       pot_repu = math.pow((1/dist),2)
+      -- pot_repu = 0
+        pot_total = pot_atra + pot_repu
+
+        if((pot_total<aux) and (visit[ii][jj]==0))then
+            aux = pot_total
+            visit[ii][jj] = 1
+            xi = i
+            yi = j
+        end
+        jj = jj + 1
+end
+        ii = ii + 1
+end
+
+    delta_x = xi - xr
+    delta_y = yi - yr
+    theta_ref = math.atan(delta_y/delta_x)
+    theta_ref = math.deg(theta_ref)
+    theta_i = math.deg(theta_i)
+        dist = math.sqrt(math.pow((xf-xr),2)+math.pow((yf-yr),2))
+        dist = math.sqrt(math.pow(dist,2))
+
+    if (math.abs(delta_x) <= 0.1) and delta_y > 0 then
+        theta_ref = -90
+    end
+    if (math.abs(delta_x) <= 0.1) and delta_y < 0 then
+        theta_ref = 90
+    end
+    if (delta_x < 0) and delta_y < 0 then
+        theta_ref = 135
+    end
+    if (delta_x < 0) and delta_y > 0 then
+        theta_ref = -135
+    end
+    if (delta_x < -0.1) and (delta_y > 0.1) and (math.abs(theta_ref - theta_i) > 2 )then
+     --   theta_ref = 180
+    end
+    
+
+
+    if dist < 0.09 then
+    destination = 1
+    end
+    simAuxiliaryConsolePrint(myconsole,'\n ')
+    simAuxiliaryConsolePrint(myconsole, 'f= ')
+    simAuxiliaryConsolePrint(myconsole, theta_ref)
+    simAuxiliaryConsolePrint(myconsole,'\n ')
+    simAuxiliaryConsolePrint(myconsole, 'i= ')
+    simAuxiliaryConsolePrint(myconsole, theta_i)
+
+
+    if destination == 1 then
+        simSetJointTargetVelocity(motorLeft, 0)
+        simSetJointTargetVelocity(motorRight, 0)
+    end
+    if destination == 0 and (dist > 0.01) and (math.abs((theta_ref - theta_i)) <= 0.2 ) then
+        simSetJointTargetVelocity(motorLeft, 5)
+        simSetJointTargetVelocity(motorRight, 5)
+    end
+    if destination == 0 and (dist > 0.01) and ((theta_ref - theta_i) > 0.2 ) then
+        simSetJointTargetVelocity(motorLeft, 0.5)
+        simSetJointTargetVelocity(motorRight, 5)
+    end
+    if destination == 0 and  (dist > 0.01) and ((theta_ref - theta_i) < -0.2 ) then
+        simSetJointTargetVelocity(motorLeft, 5)
+        simSetJointTargetVelocity(motorRight, 0.5)
+    end
+
+end
